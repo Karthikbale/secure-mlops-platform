@@ -1,8 +1,12 @@
 import joblib
+from fastapi import HTTPException
 
 MODEL_PATH = "app/models/model.pkl"
 
-model = joblib.load(MODEL_PATH)
+try:
+    model = joblib.load(MODEL_PATH)
+except FileNotFoundError:
+    raise RuntimeError(f"Model not found at {MODEL_PATH}")
 
 label_map = {
     0: "setosa",
@@ -11,5 +15,11 @@ label_map = {
 }
 
 def predict_species(features):
-    prediction = model.predict([features])[0]
-    return label_map[int(prediction)]
+    try:
+        prediction = model.predict([features])[0]
+        return label_map[int(prediction)]
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Prediction failed: {str(e)}"
+        )
