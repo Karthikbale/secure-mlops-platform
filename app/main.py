@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from app.api.routes import router
 
 app = FastAPI(
     title="Secure MLOps Platform",
@@ -7,11 +8,10 @@ app = FastAPI(
 
 @app.get("/")
 def root():
-    return {
-        "message": "Welcome to Secure MLOps Platform"
-    }
+    return {"message": "Welcome to Secure MLOps Platform"}
+
 @app.get("/health")
 def health():
-    return {
-        "status": "healthy"
-    }
+    return {"status": "healthy"}
+
+app.include_router(router)
