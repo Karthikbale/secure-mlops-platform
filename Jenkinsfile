@@ -2,29 +2,29 @@ pipeline {
     agent any
 
     stages {
-        stage('Workspace Information') {
+
+        stage('Checkout') {
             steps {
-                echo '=== Jenkins Workspace Information ==='
-                sh 'pwd'
-                sh 'ls -la'
+                checkout scm
             }
         }
 
-        stage('Verify Project Structure') {
+        stage('Docker Version') {
             steps {
-                echo '=== Project Structure ==='
-                sh 'find . -maxdepth 2 -type f | sort'
+                sh 'docker --version'
             }
         }
-    }
 
-    post {
-        success {
-            echo 'Pipeline completed successfully!'
+        stage('Docker Info') {
+            steps {
+                sh 'docker info'
+            }
         }
 
-        failure {
-            echo 'Pipeline failed. Check the console output.'
+        stage('Running Containers') {
+            steps {
+                sh 'docker ps'
+            }
         }
     }
 }
