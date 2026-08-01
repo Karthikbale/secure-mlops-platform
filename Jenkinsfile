@@ -1,69 +1,30 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "secure-mlops-platform"
-        IMAGE_TAG = "v1.0.0"
-    }
-
-    options {
-        timestamps()
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-    }
-
     stages {
-
-        stage('Checkout Source') {
+        stage('Workspace Information') {
             steps {
-                checkout scm
+                echo '=== Jenkins Workspace Information ==='
+                sh 'pwd'
+                sh 'ls -la'
             }
         }
 
-        stage('Verify Python') {
+        stage('Verify Project Structure') {
             steps {
-                bat 'py --version'
-                bat 'py -m pip --version'
-            }
-        }
-
-        stage('Create Virtual Environment') {
-            steps {
-                bat 'py -m venv venv'
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                bat 'venv\\Scripts\\python -m pip install --upgrade pip'
-                bat 'venv\\Scripts\\python -m pip install -r requirements.txt'
-            }
-        }
-
-        stage('Verify Docker') {
-            steps {
-        bat 'docker version'
-        bat 'docker images'
-            }
-        }
-
-        stage('Build Docker Image') {
-             steps {
-        bat 'docker build -t %IMAGE_NAME%:%IMAGE_TAG% .'
+                echo '=== Project Structure ==='
+                sh 'find . -maxdepth 2 -type f | sort'
             }
         }
     }
 
     post {
         success {
-            echo '✅ Pipeline completed successfully.'
+            echo 'Pipeline completed successfully!'
         }
 
         failure {
-            echo '❌ Pipeline failed.'
-        }
-
-        always {
-            cleanWs()
+            echo 'Pipeline failed. Check the console output.'
         }
     }
 }
