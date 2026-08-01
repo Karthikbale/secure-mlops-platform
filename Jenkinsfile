@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "secure-mlops-platform"
+        IMAGE_TAG = "1.0.${BUILD_NUMBER}"
+    }
+
     stages {
 
         stage('Checkout') {
@@ -15,15 +20,19 @@ pipeline {
             }
         }
 
-        stage('Docker Info') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker info'
+                sh '''
+                docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                '''
             }
         }
 
-        stage('Running Containers') {
+        stage('List Docker Images') {
             steps {
-                sh 'docker ps'
+                sh '''
+                docker images | grep ${IMAGE_NAME}
+                '''
             }
         }
     }
