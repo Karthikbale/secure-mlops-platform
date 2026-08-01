@@ -39,9 +39,16 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Verify Docker') {
             steps {
-                bat 'docker build -t %IMAGE_NAME%:%IMAGE_TAG% .'
+        bat 'docker version'
+        bat 'docker images'
+            }
+        }
+
+        stage('Build Docker Image') {
+             steps {
+        bat 'docker build -t %IMAGE_NAME%:%IMAGE_TAG% .'
             }
         }
     }
