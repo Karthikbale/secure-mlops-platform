@@ -55,6 +55,13 @@ pipeline {
                 '''
             }
         }
+        stage('pip-audit Dependency Scan') {
+            steps {
+                 sh '''
+                     pip-audit -r requirements.txt
+                '''
+            }
+        }
         stage('Verify Docker') {
             steps {
                 sh '''
