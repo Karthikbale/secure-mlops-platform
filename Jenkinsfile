@@ -48,7 +48,13 @@ pipeline {
                 }
             }
         }
-
+        stage('Bandit Security Scan') {
+            steps {
+                sh '''
+                    bandit -r app/
+                '''
+            }
+        }
         stage('Verify Docker') {
             steps {
                 sh '''
