@@ -57,8 +57,8 @@ pipeline {
         }
         stage('pip-audit Dependency Scan') {
             steps {
-                 sh '''
-                     pip-audit -r requirements.txt
+                sh '''
+                     /opt/pip-audit/venv/bin/pip-audit -r requirements.txt
                 '''
             }
         }
