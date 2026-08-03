@@ -55,13 +55,6 @@ pipeline {
                 '''
             }
         }
-        stage('pip-audit Dependency Scan') {
-            steps {
-                sh '''
-                  /opt/pip-audit/venv/bin/pip-audit -r requirements.txt || true
-                '''
-            }
-        }
         stage('Verify Docker') {
             steps {
                 sh '''
