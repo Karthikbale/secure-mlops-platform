@@ -14,6 +14,41 @@ pipeline {
             }
         }
 
+        stage('Install Python Dependencies') {
+            steps {
+                sh '''
+                    python3 -m pip install --upgrade pip
+                    pip3 install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'sonar-scanner'
+
+                    withSonarQubeEnv('sonarqube') {
+                        sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                          -Dsonar.projectKey=secure-mlops-platform \
+                          -Dsonar.projectName=secure-mlops-platform \
+                          -Dsonar.sources=. \
+                          -Dsonar.python.version=3
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
         stage('Verify Docker') {
             steps {
                 sh '''
@@ -60,11 +95,11 @@ pipeline {
 
     post {
         success {
-            echo "Docker image ${IMAGE_NAME}:${IMAGE_TAG} built successfully."
+            echo "Secure DevSecOps pipeline completed successfully."
         }
 
         failure {
-            echo "Docker image build failed. Check the console output."
+            echo "Pipeline failed. Check the console output."
         }
 
         always {
