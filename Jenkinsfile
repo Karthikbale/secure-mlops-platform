@@ -73,6 +73,21 @@ pipeline {
                 '''
             }
         }
+        stage('Trivy Container Scan') {
+            steps {
+                 sh '''
+                     mkdir -p reports
+
+                        trivy image \
+                        --scanners vuln \
+                        --severity HIGH,CRITICAL \
+                        --exit-code 1 \
+                        --format table \
+                        --output reports/trivy-report.txt \
+                        ${IMAGE_NAME}:${IMAGE_TAG}
+                    '''
+            }
+        }
 
         stage('Display Image Information') {
             steps {
