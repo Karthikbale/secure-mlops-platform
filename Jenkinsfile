@@ -30,11 +30,11 @@ pipeline {
 
                     withSonarQubeEnv('sonarqube') {
                         sh """
-                        ${scannerHome}/bin/sonar-scanner \
-                          -Dsonar.projectKey=secure-mlops-platform \
-                          -Dsonar.projectName=secure-mlops-platform \
-                          -Dsonar.sources=. \
-                          -Dsonar.python.version=3
+                            ${scannerHome}/bin/sonar-scanner \
+                              -Dsonar.projectKey=secure-mlops-platform \
+                              -Dsonar.projectName=secure-mlops-platform \
+                              -Dsonar.sources=. \
+                              -Dsonar.python.version=3
                         """
                     }
                 }
@@ -48,6 +48,7 @@ pipeline {
                 }
             }
         }
+
         stage('Bandit Security Scan') {
             steps {
                 sh '''
@@ -55,6 +56,7 @@ pipeline {
                 '''
             }
         }
+
         stage('Verify Docker') {
             steps {
                 sh '''
@@ -73,26 +75,12 @@ pipeline {
                 '''
             }
         }
-        stage('Trivy Container Scan') {
-            steps {
-                 sh '''
-                     mkdir -p reports
-
-                        trivy image \
-                        --scanners vuln \
-                        --severity HIGH,CRITICAL \
-                        --exit-code 1 \
-                        --format table \
-                        --output reports/trivy-report.txt \
-                        ${IMAGE_NAME}:${IMAGE_TAG}
-                    '''
-            }
-        }
 
         stage('Display Image Information') {
             steps {
                 sh '''
                     docker images | grep ${IMAGE_NAME}
+
                     docker image inspect ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
@@ -112,18 +100,43 @@ pipeline {
                 archiveArtifacts artifacts: 'build-info/*', fingerprint: true
             }
         }
+
+        stage('Trivy Container Scan') {
+            steps {
+                sh '''
+                    mkdir -p reports
+
+                    trivy image \
+                      --scanners vuln \
+                      --severity HIGH,CRITICAL \
+                      --exit-code 1 \
+                      --format table \
+                      --output reports/trivy-report.txt \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
+            }
+        }
     }
 
     post {
+
         success {
             echo "Secure DevSecOps pipeline completed successfully."
         }
 
         failure {
-            echo "Pipeline failed. Check the console output."
+            echo "Pipeline failed due to quality or security checks. Review the archived reports."
         }
 
         always {
+
+            archiveArtifacts artifacts: 'reports/trivy-report.txt',
+                             allowEmptyArchive: true
+
+            archiveArtifacts artifacts: 'build-info/*',
+                             fingerprint: true,
+                             allowEmptyArchive: true
+
             cleanWs()
         }
     }
