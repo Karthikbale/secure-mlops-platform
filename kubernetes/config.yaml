@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: secure-mlops-config
+  namespace: secure-mlops
+data:
+  APP_ENV: "production"
