@@ -2,8 +2,18 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "secure-mlops-platform"
-        IMAGE_TAG  = "1.0.${BUILD_NUMBER}"
+        IMAGE_NAME    = "secure-mlops-platform"
+        IMAGE_TAG     = "1.0.${BUILD_NUMBER}"
+
+        AWS_REGION    = "us-east-1"
+        AWS_ACCOUNT   = "591064574283"
+        ECR_REGISTRY  = "${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        ECR_REPOSITORY = "secure-mlops-platform"
+
+        EKS_CLUSTER   = "secure-mlops-eks"
+        EKS_NAMESPACE = "secure-mlops"
+        DEPLOYMENT    = "secure-mlops-api"
+        CONTAINER     = "secure-mlops-api"
     }
 
     stages {
@@ -86,21 +96,6 @@ pipeline {
             }
         }
 
-        stage('Archive Build Information') {
-            steps {
-                sh '''
-                    mkdir -p build-info
-
-                    docker images ${IMAGE_NAME} > build-info/docker-images.txt
-
-                    docker image inspect ${IMAGE_NAME}:${IMAGE_TAG} \
-                    > build-info/image-inspect.json
-                '''
-
-                archiveArtifacts artifacts: 'build-info/*', fingerprint: true
-            }
-        }
-
         stage('Trivy Container Scan') {
             steps {
                 sh '''
@@ -116,16 +111,148 @@ pipeline {
                 '''
             }
         }
+
+        stage('Archive Build Information') {
+            steps {
+                sh '''
+                    mkdir -p build-info
+
+                    docker images ${IMAGE_NAME} \
+                      > build-info/docker-images.txt
+
+                    docker image inspect ${IMAGE_NAME}:${IMAGE_TAG} \
+                      > build-info/image-inspect.json
+                '''
+
+                archiveArtifacts artifacts: 'build-info/*',
+                                 fingerprint: true
+            }
+        }
+
+        stage('Push Image to ECR') {
+            steps {
+                sh '''
+                    echo "Logging in to Amazon ECR..."
+
+                    aws ecr get-login-password \
+                      --region ${AWS_REGION} \
+                    | docker login \
+                      --username AWS \
+                      --password-stdin ${ECR_REGISTRY}
+
+                    echo "Tagging image for ECR..."
+
+                    docker tag \
+                      ${IMAGE_NAME}:${IMAGE_TAG} \
+                      ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+
+                    echo "Pushing image to ECR..."
+
+                    docker push \
+                      ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                sh '''
+                    echo "Configuring kubeconfig for EKS..."
+
+                    aws eks update-kubeconfig \
+                      --name ${EKS_CLUSTER} \
+                      --region ${AWS_REGION}
+
+                    echo "Deploying image to EKS..."
+
+                    kubectl set image deployment/${DEPLOYMENT} \
+                      ${CONTAINER}=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} \
+                      --namespace ${EKS_NAMESPACE}
+                '''
+            }
+        }
+
+        stage('EKS Rollout Verification') {
+            steps {
+                sh '''
+                    echo "Waiting for Kubernetes rollout..."
+
+                    kubectl rollout status \
+                      deployment/${DEPLOYMENT} \
+                      --namespace ${EKS_NAMESPACE} \
+                      --timeout=180s
+                '''
+            }
+        }
+
+        stage('Verify EKS Pods') {
+            steps {
+                sh '''
+                    echo "Checking Pods..."
+
+                    kubectl get pods \
+                      --namespace ${EKS_NAMESPACE} \
+                      -o wide
+
+                    echo "Checking Deployment..."
+
+                    kubectl get deployment ${DEPLOYMENT} \
+                      --namespace ${EKS_NAMESPACE}
+                '''
+            }
+        }
+
+        stage('Verify Application') {
+            steps {
+                sh '''
+                    echo "Waiting for Load Balancer endpoint..."
+
+                    for i in $(seq 1 30); do
+
+                        LB_HOST=$(kubectl get service secure-mlops-service \
+                          --namespace ${EKS_NAMESPACE} \
+                          -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+                        if [ -n "$LB_HOST" ]; then
+                            break
+                        fi
+
+                        echo "Load Balancer not ready. Waiting..."
+                        sleep 10
+
+                    done
+
+                    if [ -z "$LB_HOST" ]; then
+                        echo "ERROR: Load Balancer endpoint was not created."
+                        exit 1
+                    fi
+
+                    echo "Load Balancer:"
+                    echo "$LB_HOST"
+
+                    echo "Testing application health..."
+
+                    curl --fail --silent \
+                      --show-error \
+                      --max-time 20 \
+                      http://${LB_HOST}/health
+
+                    echo ""
+                    echo "Application health check passed."
+                '''
+            }
+        }
     }
 
     post {
 
         success {
-            echo "Secure DevSecOps pipeline completed successfully."
+            echo "Secure MLOps CI/CD pipeline completed successfully."
+            echo "Application successfully deployed to Amazon EKS."
         }
 
         failure {
-            echo "Pipeline failed due to quality or security checks. Review the archived reports."
+            echo "Pipeline failed during build, security, ECR push, EKS deployment, rollout, or application verification."
         }
 
         always {
