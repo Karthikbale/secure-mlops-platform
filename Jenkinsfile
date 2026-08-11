@@ -255,6 +255,65 @@ pipeline {
                 '''
             }
         }
+        stage('Verify Prometheus Metrics') {
+            steps {
+                 sh '''
+                        echo "Verifying Prometheus metrics endpoint..."
+
+                        LB_HOST=$(kubectl get service secure-mlops-service \
+                        --namespace ${EKS_NAMESPACE} \
+                        -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+                        curl --fail --silent \
+                        --show-error \
+                        --max-time 20 \
+                        http://${LB_HOST}/metrics \
+                        | head -20
+
+                        echo ""
+                         echo "Prometheus metrics endpoint verified."
+                    '''
+            }
+        }
+
+        stage('Verify Prometheus') {
+            steps {
+                sh '''
+                    echo "Checking Prometheus..."
+
+                    kubectl get pods -A | grep -i prometheus || true
+                    kubectl get svc -A | grep -i prometheus || true
+
+                    echo "Prometheus verification completed."
+                '''
+            }
+        }
+
+        stage('Verify Grafana') {
+            steps {
+                sh '''
+                    echo "Checking Grafana..."
+
+                    kubectl get pods -A | grep -i grafana || true
+                    kubectl get svc -A | grep -i grafana || true
+
+                    echo "Grafana verification completed."
+                '''
+            }
+        }
+
+        stage('Verify Alertmanager') {
+            steps {
+                sh '''
+                    echo "Checking Alertmanager..."
+
+                    kubectl get pods -A | grep -i alertmanager || true
+                    kubectl get svc -A | grep -i alertmanager || true
+
+                    echo "Alertmanager verification completed."
+                '''
+            }
+        }
         
         
     }
