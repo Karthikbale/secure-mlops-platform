@@ -1,4 +1,4 @@
-```python
+python
 from fastapi import FastAPI
 from app.api.routes import router
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -20,4 +20,4 @@ def health():
     return {"status": "healthy"}
 
 app.include_router(router)
-```
+
