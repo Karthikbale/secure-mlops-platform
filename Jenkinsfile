@@ -255,6 +255,28 @@ pipeline {
                 '''
             }
         }
+        
+        stage('Verify Prometheus Metrics') {
+            steps {
+                sh '''
+                     echo "Verifying Prometheus metrics endpoint..."
+
+                    LB_HOST=$(kubectl get service secure-mlops-service \
+                    --namespace ${EKS_NAMESPACE} \
+                     -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+                    echo "Testing metrics endpoint..."
+
+                    curl --fail --silent \
+                    --show-error \
+                   --max-time 20 \
+                    http://${LB_HOST}/metrics \
+                    | head -20
+
+                    echo "Prometheus metrics endpoint is working."
+                '''
+            }
+        }
     }
 
     post {
