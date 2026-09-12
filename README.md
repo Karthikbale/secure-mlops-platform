@@ -4,15 +4,21 @@ A production-ready Secure MLOps Platform built with FastAPI and DevOps best prac
 
 ## Tech Stack
 
-- Python
-- FastAPI
-- Git & GitHub
-- Docker (Upcoming)
-- Jenkins (Upcoming)
-- SonarQube (Upcoming)
-- Trivy (Upcoming)
-- Kubernetes (Upcoming)
-- Prometheus & Grafana (Upcoming)
+- Machine Learning inference through FastAPI
+- Git-based source control
+- Continuous Integration using Jenkins
+- Code quality analysis using SonarQube
+- Python static security analysis using Bandit
+- Dependency vulnerability analysis using pip-audit
+- Containerization using Docker
+- Container vulnerability scanning using Trivy
+- Container image management using Amazon ECR
+- Kubernetes deployment using Amazon EKS
+- Automated deployment verification
+- Build and security report archiving
+
+The AWS infrastructure was provisioned and tested during development and was removed after testing to control cloud costs.
+
 
 ## Project Structure
 
@@ -23,10 +29,6 @@ docs/
 scripts/
 configs/
 ```
-
-## Project Status
-
-🚧 Project foundation is under development.
 
 ## Ml Application Architecture in Github
 
@@ -73,3 +75,392 @@ configs/
                                                │
                                                ▼
                                             Client
+## 🏗️ Architecture
+
+
+                         ┌─────────────────┐
+                         │     GitHub      │
+                         │ Source Control  │
+                         └────────┬────────┘
+                                  │
+                                  ▼
+                         ┌─────────────────┐
+                         │     Jenkins     │
+                         │   CI Pipeline   │
+                         └────────┬────────┘
+                                  │
+                    ┌─────────────┴─────────────┐
+                    │                           │
+                    ▼                           ▼
+             ┌──────────────┐           ┌──────────────┐
+             │  SonarQube   │           │    Bandit    │
+             │ Code Quality │           │ Python SAST  │
+             └──────────────┘           └──────────────┘
+                    │                           │
+                    └─────────────┬─────────────┘
+                                  │
+                                  ▼
+                         ┌─────────────────┐
+                         │      Docker     │
+                         │   Image Build   │
+                         └────────┬────────┘
+                                  │
+                                  ▼
+                         ┌─────────────────┐
+                         │     Trivy       │
+                         │ Image Security  │
+                         └────────┬────────┘
+                                  │
+                                  ▼
+                         ┌─────────────────┐
+                         │   Amazon ECR    │
+                         │ Container Reg.  │
+                         └────────┬────────┘
+                                  │
+                                  ▼
+                         ┌─────────────────┐
+                         │   Amazon EKS    │
+                         │   Kubernetes    │
+                         └────────┬────────┘
+                                  │
+                                  ▼
+                         ┌─────────────────┐
+                         │ FastAPI ML API  │
+                         │ Inference App   │
+                         └─────────────────┘
+                                  ↓
+                             Prometheus
+                                  ↓
+                              Grafana
+                                  ↓
+                            Alertmanager
+
+## CI/CD Pipeline
+
+The implemented Jenkins pipeline follows this workflow:
+
+GitHub
+   ↓
+Checkout Source
+   ↓
+Install Python Dependencies
+   ↓
+SonarQube Analysis
+   ↓
+Quality Gate
+   ↓
+Bandit Security Scan
+   ↓
+Verify Docker
+   ↓
+Build ML Docker Image
+   ↓
+Display Image Information
+   ↓
+Trivy Container Scan
+   ↓
+Archive Build & Security Reports
+   ↓
+Push Image to Amazon ECR
+   ↓
+Deploy to Amazon EKS
+   ↓
+Verify Kubernetes Rollout
+   ↓
+Application Running
+FastAPI ML Application
+   │
+   └──────────────┐
+                  ↓
+             Prometheus
+                  ↓
+               Grafana
+                  ↓
+            Alertmanager
+
+The pipeline is designed so that security checks happen before the container image is promoted toward deployment.
+
+Machine Learning Inference Service
+
+The application is built using Python and FastAPI.
+
+The ML service provides an HTTP API through which clients can submit input data and receive model predictions.
+
+Main endpoints
+Endpoint	Purpose
+/	Application information
+/health	Application health check
+/predict	ML model prediction
+/docs	FastAPI Swagger/OpenAPI documentation
+
+The application was developed from scratch inside this repository.
+
+## 🐍 FastAPI
+
+FastAPI provides the REST API layer for the machine learning model.
+
+Example application flow:
+
+Client
+   │
+   ▼
+FastAPI API
+   │
+   ▼
+Input Validation
+   │
+   ▼
+ML Model
+   │
+   ▼
+Prediction
+   │
+   ▼
+JSON Response
+
+FastAPI's automatic Swagger/OpenAPI documentation was also used to test the API.
+
+## 🐳 Docker & Containerization
+
+The application is packaged as a Docker container to provide a consistent runtime environment across development, CI, and deployment environments.
+
+Docker practices implemented
+Python 3.11 slim base image
+Layer optimization
+Docker build caching
+--no-cache-dir for Python dependencies
+.dockerignore
+Versioned image tags
+Container health verification
+
+Example:
+
+docker build -t secure-mlops-platform:v1.0.0 .
+
+Run locally:
+
+docker run -p 8000:8000 secure-mlops-platform:v1.0.0
+
+Application:
+
+http://localhost:8000
+
+Swagger:
+
+http://localhost:8000/docs
+
+
+## 🔧 Jenkins CI/CD
+
+Jenkins is used as the automation server for the project.
+
+The Jenkins pipeline automates:
+
+Source code checkout
+Dependency installation
+Code quality analysis
+Security scanning
+Docker image creation
+Container vulnerability scanning
+Image publishing
+Kubernetes deployment
+Deployment verification
+
+The pipeline is defined as code using:
+
+Jenkinsfile
+
+This allows the CI/CD process to be version controlled together with the application.
+
+## 📊 SonarQube
+
+SonarQube is used for automated code quality analysis.
+
+The pipeline performs:
+
+Source Code
+     ↓
+SonarQube Analysis
+     ↓
+Quality Gate
+     ↓
+Continue / Fail Pipeline
+
+The Quality Gate helps prevent code with unacceptable quality conditions from progressing through the pipeline.
+
+## 🛡️ Bandit – Python SAST
+
+Bandit is used for Static Application Security Testing (SAST) of Python source code.
+
+It analyzes Python code for common security issues before the application is packaged into a container.
+
+Pipeline:
+
+Python Source Code
+        ↓
+      Bandit
+        ↓
+Security Findings
+        ↓
+Pipeline Decision
+
+## 🔍 pip-audit – Software Composition Analysis
+
+pip-audit was used to evaluate Python dependencies for known security vulnerabilities.
+
+During development, vulnerabilities were identified in dependencies including:
+
+Starlette
+Click
+
+The findings were documented and reviewed.
+
+The automated Jenkins stage was temporarily deferred because of Python-version compatibility in the build environment.
+
+The dependency security process can be re-enabled after upgrading the CI environment to a compatible Python version.
+
+## 🔐 Trivy – Container Security
+
+Trivy is used to scan the Docker image for known vulnerabilities.
+
+The scan checks container packages against vulnerability databases.
+
+Pipeline security gate:
+
+Docker Build
+     ↓
+    Trivy
+     ↓
+HIGH / CRITICAL?
+     ↓
+ ┌───┴────┐
+ │        │
+ YES      NO
+ │        │
+FAIL     PASS
+
+The Jenkins pipeline was configured to fail when HIGH or CRITICAL vulnerabilities were detected.
+
+Example scan:
+
+trivy image --scanners vuln \
+  --severity HIGH,CRITICAL \
+  --exit-code 1 \
+  secure-mlops-platform:latest
+
+Trivy reports were also archived by Jenkins.
+
+## ☁️ Amazon ECR
+
+Amazon Elastic Container Registry (ECR) was used as the container image registry.
+
+The workflow is:
+
+Jenkins
+   ↓
+Docker Build
+   ↓
+Trivy Security Scan
+   ↓
+Amazon ECR
+
+The validated Docker image was tagged and pushed to the ECR repository.
+
+Example image format:
+
+<account-id>.dkr.ecr.<region>.amazonaws.com/secure-mlops-platform:<tag>
+## ☸️ Amazon EKS
+
+The application was deployed to Amazon Elastic Kubernetes Service (EKS).
+
+EKS provides the managed Kubernetes control plane while worker nodes run the application workloads.
+
+Deployment architecture:
+
+Amazon EKS
+│
+├── Control Plane
+│
+└── Managed Node Group
+       │
+       ├── Pod
+       │    └── FastAPI ML Application
+       │
+       └── Pod
+            └── FastAPI ML Application
+
+The application Docker image was pulled from Amazon ECR and deployed to EKS.
+
+## ☸️ Kubernetes
+
+The application was deployed using Kubernetes resources such as:
+
+Deployment
+Pods
+ReplicaSets
+Service
+ConfigMaps where required
+Secrets where required
+
+Deployment flow:
+
+Amazon ECR
+     ↓
+Kubernetes Deployment
+     ↓
+ReplicaSet
+     ↓
+Pods
+     ↓
+FastAPI Application
+
+A Kubernetes Service was used to expose the application.
+
+## 🔄 Deployment Verification
+
+After deployment, the pipeline verifies the Kubernetes rollout.
+
+Typical verification includes:
+
+kubectl get pods
+kubectl get deployments
+kubectl get services
+kubectl rollout status deployment/<deployment-name>
+
+
+# 📊 Monitoring & Observability
+
+The platform includes a monitoring and observability layer for the Kubernetes workloads and ML inference service.
+
+## Prometheus
+
+Prometheus is used to collect and store metrics from the Kubernetes environment and application.
+
+Monitoring includes metrics such as:
+
+- CPU utilization
+- Memory utilization
+- Pod status
+- Pod restarts
+- Application request metrics
+- Application health metrics
+
+## Grafana
+
+Grafana is used to visualize Prometheus metrics through dashboards.
+
+Example monitoring flow:
+
+```text
+FastAPI ML Application
+        ↓
+   Application Metrics
+        ↓
+    Prometheus
+        ↓
+      Grafana
+        ↓
+    Dashboards
+
+
+This helps ensure that the application is not considered successfully deployed until the Kubernetes workload is healthy.
